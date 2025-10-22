@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-cli"
+version = "0.1.0"
+description = "CLI helper for troubleshooting Codex API authentication"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Codex CLI Contributors" }
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: System :: Monitoring",
+]
+
+[project.scripts]
+"codex-cli" = "codex_cli.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["codex_cli"]
+
