@@ -37,3 +37,12 @@ def test_status_command_success_prints_confirmation(capsys):
     assert exit_code == 0
     out = capsys.readouterr().out
     assert "Successfully connected" in out
+
+
+def test_version_command_prints_package_version(capsys):
+    with patch("codex_cli.cli._determine_version", return_value="1.2.3"):
+        exit_code = main(["version"])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert out.strip() == "codex-cli 1.2.3"

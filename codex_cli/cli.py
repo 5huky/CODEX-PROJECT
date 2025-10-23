@@ -6,6 +6,11 @@ import argparse
 import sys
 from typing import Iterable, Optional
 
+try:  # pragma: no cover - importlib.metadata is available on all supported versions
+    from importlib import metadata as importlib_metadata
+except ImportError:  # pragma: no cover - fallback for very old Python versions
+    import importlib_metadata  # type: ignore[import]
+
 from .client import CodexClient
 from .exceptions import CodexError, UnauthorizedError
 
@@ -46,7 +51,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="GET",
         help="HTTP method to use for the connectivity check.",
     )
-    status_parser.set_defaults(handler=_handle_status)
+    status_parser.set_defaults(handler=_handle_status, requires_client=True)
+
+    version_parser = subparsers.add_parser(
+        "version",
+        help="Show the installed codex-cli package version.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    version_parser.set_defaults(handler=_handle_version, requires_client=False)
 
     return parser
 
@@ -60,22 +72,28 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         parser.print_help()
         return 1
 
-    client_kwargs = {}
-    if getattr(args, "api_key", None):
-        client_kwargs["api_key"] = args.api_key
-    if getattr(args, "base_url", None):
-        client_kwargs["base_url"] = args.base_url
+    requires_client = getattr(args, "requires_client", True)
 
-    try:
-        client = CodexClient(**client_kwargs)
-    except UnauthorizedError as exc:
-        _print_error(str(exc))
-        return 1
-    except CodexError as exc:
-        _print_error(str(exc))
-        return 1
+    client: Optional[CodexClient] = None
+    if requires_client:
+        client_kwargs = {}
+        if getattr(args, "api_key", None):
+            client_kwargs["api_key"] = args.api_key
+        if getattr(args, "base_url", None):
+            client_kwargs["base_url"] = args.base_url
 
-    return handler(args, client)
+        try:
+            client = CodexClient(**client_kwargs)
+        except UnauthorizedError as exc:
+            _print_error(str(exc))
+            return 1
+        except CodexError as exc:
+            _print_error(str(exc))
+            return 1
+
+        return handler(args, client)
+
+    return handler(args)
 
 
 def _handle_status(args: argparse.Namespace, client: CodexClient) -> int:
@@ -95,6 +113,25 @@ def _handle_status(args: argparse.Namespace, client: CodexClient) -> int:
     return 0
 
 
+def _handle_version(args: argparse.Namespace) -> int:
+    version = _determine_version()
+    print(f"codex-cli {version}")
+    return 0
+
+
 def _print_error(message: str) -> None:
     print(f"Error: {message}", file=sys.stderr)
+
+
+def _determine_version() -> str:
+    try:
+        return importlib_metadata.version("codex-cli")
+    except importlib_metadata.PackageNotFoundError:
+        try:
+            from . import __version__
+        except ImportError:  # pragma: no cover - package import should succeed
+            return "unknown"
+        if isinstance(__version__, str) and __version__:
+            return __version__
+        return "unknown"
 
